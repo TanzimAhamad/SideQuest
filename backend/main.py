@@ -1,15 +1,8 @@
-# """FastAPI application for the SideQuest backend."""
- # type: ignore[import-not-found]  # pylint: disable=import-error
-from fastapi import FastAPI 
+"""Entry point for SideQuest backend application."""
+from app.main import app
 
-app = FastAPI(title="SideQuest API")
+if __name__ == "__main__":
+    import uvicorn
 
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to SideQuest API"}
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}

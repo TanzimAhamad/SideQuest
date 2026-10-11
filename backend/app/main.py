@@ -1,11 +1,41 @@
-from fastapi import Depends, FastAPI, HTTPException
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-# Import get_db (without parentheses)
-from app.database import get_db
+from app.database import Base, engine
+from app.models import User
+from app.routers.auth import router as auth_router
 
-app = FastAPI(title="SideQuest API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Safely initialize tables on startup without crashing if DB is offline
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database tables initialized successfully.")
+    except Exception as exc:
+        print(f"Warning: Could not connect to database on startup: {exc}")
+        print("API is running, but database operations may fail until the database is available.")
+    yield
+
+
+app = FastAPI(
+    title="SideQuest API",
+    lifespan=lifespan,
+)
+
+# CORS middleware for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router)
 
 
 @app.get("/")
@@ -14,15 +44,13 @@ def root():
 
 
 @app.get("/db-check")
-def check_database(db: Session = Depends(get_db)):
+def check_database():
     try:
-        result = db.execute(text("SELECT 1")).scalar_one()
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"database_connected": True}
+    except Exception as exc:
         return {
-            "database_connected": True,
-            "test_query_result": result,
+            "database_connected": False,
+            "error": str(exc),
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database connection failed: {str(e)}",
-        )

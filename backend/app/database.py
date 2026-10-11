@@ -1,16 +1,24 @@
 import os
+from pathlib import Path
 from typing import Generator
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# Load environment variables from .env file
-load_dotenv()
+# Locate .env reliably in the backend directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+env_file = BASE_DIR / ".env"
+
+if env_file.exists():
+    load_dotenv(dotenv_path=env_file)
+else:
+    load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is missing from .env")
+    # Fallback to local SQLite database in backend directory if .env is missing
+    DATABASE_URL = f"sqlite:///{BASE_DIR / 'sidequest.db'}"
 
 # SQLite requires check_same_thread=False; PostgreSQL does not
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
