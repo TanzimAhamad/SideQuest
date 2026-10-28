@@ -7,7 +7,8 @@ from sqlalchemy import text
 from app.database import Base, engine
 from app.models import User
 from app.routers.auth import router as auth_router
-
+from app.routers.chat import router as chat_router
+from app.models.chat_message import ChatMessage
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +26,7 @@ app = FastAPI(
     title="SideQuest API",
     lifespan=lifespan,
 )
-
+app.include_router(chat_router)
 # CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
