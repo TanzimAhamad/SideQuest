@@ -11,10 +11,35 @@ from app.core.dependencies import SECRET_KEY
 from app.database import SessionLocal
 from app.models.user import User
 from app.models.chat_message import ChatMessage
+from app.models.group import Group
+from app.models.group_member import GroupMember
 
 
 router = APIRouter()
-
+@router.get("/chat-info", tags=["Chat"])
+def chat_documentation():
+    return {
+        "name": "SideQuest Group Chat",
+        "description": "Real-time group messaging using WebSocket",
+        "connection_url": (
+            "ws://127.0.0.1:8000/ws/groups/{group_id}?token={jwt_token}"
+        ),
+        "authentication": "JWT token required",
+        "message_format": "Plain text",
+        "features": [
+            "Real-time messaging",
+            "JWT authentication",
+            "Group-based broadcasting",
+            "PostgreSQL message persistence",
+        ],
+        "response_format": {
+            "id": "Message ID",
+            "group_id": "Group ID",
+            "sender_id": "Sender user ID",
+            "message": "Message content",
+            "created_at": "Message timestamp",
+        },
+    }
 
 class ConnectionManager:
     def __init__(self):
@@ -72,6 +97,24 @@ def get_authenticated_user(token: str) -> User | None:
     finally:
         db.close()
 
+def is_group_member(group_id: int, user_id: int) -> bool:
+    db: Session = SessionLocal()
+
+    try:
+        membership = (
+            db.query(GroupMember)
+            .filter(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == user_id,
+            )
+            .first()
+        )
+
+        return membership is not None
+
+    finally:
+        db.close()        
+
 
 def save_message(group_id: int, sender_id: int, message: str) -> dict:
     db: Session = SessionLocal()
@@ -108,7 +151,17 @@ async def group_chat(websocket: WebSocket, group_id: int, token: str):
     user = get_authenticated_user(token)
 
     if user is None:
-        await websocket.close(code=1008, reason="Invalid authentication")
+        await websocket.close(
+            code=1008,
+            reason="Invalid authentication",
+        )
+        return
+
+    if not is_group_member(group_id, user.id):
+        await websocket.close(
+            code=1008,
+            reason="You are not a member of this group",
+        )
         return
 
     await manager.connect(group_id, websocket)
