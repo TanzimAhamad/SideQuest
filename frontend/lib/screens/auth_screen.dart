@@ -100,8 +100,9 @@ class _AuthScreenState extends State<AuthScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => HomeScreen(
-            displayName: (user['username'] as String?) ?? 'User',
-          ),
+             displayName: (user['username'] as String?) ?? 'User',
+            currentUserId: (user['id'] as num).toInt(),
+),
         ),
       );
     } catch (e) {

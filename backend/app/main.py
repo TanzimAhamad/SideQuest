@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from app.routers.private_chat import router as private_chat_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -7,7 +7,10 @@ from sqlalchemy import text
 from app.database import Base, engine
 from app.models import User
 from app.routers.auth import router as auth_router
-
+from app.routers.chat import router as chat_router
+from app.models.chat_message import ChatMessage
+from app.routers.message import router as messages_router
+from app.routers.groups import router as groups_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +29,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 # CORS middleware for frontend communication
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +40,10 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(messages_router)
+app.include_router(groups_router)
+app.include_router(chat_router)
+app.include_router(private_chat_router)
 
 
 @app.get("/")
