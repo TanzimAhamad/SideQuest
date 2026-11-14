@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from app.routers.movies import router as movies_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -30,6 +30,7 @@ app = FastAPI(
 )
 app.include_router(chat_router)
 # CORS middleware for frontend communication
+app.include_router(movies_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
