@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+
 from app.routers.private_chat import router as private_chat_router
+from app.routers.movies import router as movies_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -31,6 +33,7 @@ app = FastAPI(
 
 
 # CORS middleware for frontend communication
+app.include_router(movies_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -44,6 +47,7 @@ app.include_router(messages_router)
 app.include_router(groups_router)
 app.include_router(chat_router)
 app.include_router(private_chat_router)
+app.include_router(movies_router)
 
 
 @app.get("/")
