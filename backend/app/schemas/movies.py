@@ -43,7 +43,7 @@ class MovieScheduleInfo(BaseModel):
     movie_id: str
     title: str
     format_and_genre: str
-    poster_url: str
+    poster_url: str | None = None
     halls: list[HallInfo]
     date: date
 

@@ -11,6 +11,9 @@ from app.routers.chat import router as chat_router
 from app.models.chat_message import ChatMessage
 from app.routers.message import router as messages_router
 from app.routers.groups import router as groups_router
+from app.routers.sidequest import router as sidequests_router
+from app.routers.sidequest_option import router as sidequest_options_router
+from app.routers.vote import router as votes_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +34,9 @@ app = FastAPI(
 app.include_router(chat_router)
 # CORS middleware for frontend communication
 app.include_router(movies_router)
+app.include_router(sidequests_router)
+app.include_router(sidequest_options_router)
+app.include_router(votes_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,7 +48,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(messages_router)
 app.include_router(groups_router)
-app.include_router(chat_router)
+
 
 @app.get("/")
 def root():
