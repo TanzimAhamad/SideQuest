@@ -1,5 +1,6 @@
 
 from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -8,15 +9,15 @@ from pydantic import BaseModel
 # -------------------------
 
 class MovieInfo(BaseModel):
-    movie_id: str
+    movie_id: str | None = None
     title: str
-    format: str
+    format: str | None = None
     rating: str | None = None
-    genre: str
-    cast: str
-    price: str
-    poster_url: str
-    details_url: str
+    genre: str | None = None
+    cast: str | None = None
+    price: str | None = None
+    poster_url: str | None = None
+    details_url: str | None = None
 
 
 class NowShowingResponse(BaseModel):
@@ -35,15 +36,15 @@ class ShowtimeInfo(BaseModel):
 
 
 class HallInfo(BaseModel):
-    hall: str
+    hall: str | None = None
     showtimes: list[ShowtimeInfo]
 
 
 class MovieScheduleInfo(BaseModel):
-    movie_id: str
+    movie_id: str | None = None
     title: str
-    format_and_genre: str
-    poster_url: str
+    format_and_genre: str | None = None
+    poster_url: str | None = None
     halls: list[HallInfo]
     date: date
 
