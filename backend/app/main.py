@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 from app.routers.movies import router as movies_router
+from app.routers.restaurant import router as restaurants_router
+from app.routers.bowling import router as bowling_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -33,7 +35,9 @@ app = FastAPI(
 )
 app.include_router(chat_router)
 # CORS middleware for frontend communication
+app.include_router(bowling_router)
 app.include_router(movies_router)
+app.include_router(restaurants_router)
 app.include_router(sidequests_router)
 app.include_router(sidequest_options_router)
 app.include_router(votes_router)
