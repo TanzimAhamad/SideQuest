@@ -11,12 +11,36 @@ from app.models.user import User
 from app.models.group import Group
 from app.models.group_member import GroupMember
 from app.models.chat_message import ChatMessage
+from app.models.sidequest import SideQuest, SideQuestOption
+from app.models.vote import SideQuestVote
 from app.routers.chat import manager
 
 router = APIRouter(
     prefix="/groups",
     tags=["Groups"],
 )
+
+
+def _delete_group_sidequests(db: Session, group_id: int) -> None:
+    sidequest_ids = [
+        row[0]
+        for row in db.query(SideQuest.id)
+        .filter(SideQuest.group_id == group_id)
+        .all()
+    ]
+    if not sidequest_ids:
+        return
+
+    db.query(SideQuestVote).filter(
+        SideQuestVote.sidequest_id.in_(sidequest_ids)
+    ).delete(synchronize_session=False)
+    db.query(SideQuestOption).filter(
+        SideQuestOption.sidequest_id.in_(sidequest_ids)
+    ).delete(synchronize_session=False)
+    db.query(SideQuest).filter(
+        SideQuest.id.in_(sidequest_ids)
+    ).delete(synchronize_session=False)
+
 
 
 class GroupCreate(BaseModel):
@@ -340,6 +364,7 @@ async def leave_group(
                 db.query(GroupMember).filter(
                     GroupMember.group_id == group_id
                 ).delete(synchronize_session=False)
+                _delete_group_sidequests(db, group_id)
                 db.delete(group)
                 db.commit()
             except Exception:
@@ -526,6 +551,7 @@ async def delete_group(
         db.query(GroupMember).filter(
             GroupMember.group_id == group_id
         ).delete(synchronize_session=False)
+        _delete_group_sidequests(db, group_id)
         db.delete(group)
         db.commit()
     except Exception:

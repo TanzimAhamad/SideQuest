@@ -15,6 +15,7 @@ class GroupChatScreen extends StatefulWidget {
   final int groupId;
   final String groupName;
   final int currentUserId;
+  final String currentUsername;
   final VoidCallback onStartSideQuest;
   final bool canAddMembers;
 
@@ -23,6 +24,7 @@ class GroupChatScreen extends StatefulWidget {
     required this.groupId,
     required this.groupName,
     required this.currentUserId,
+    required this.currentUsername,
     required this.onStartSideQuest,
     this.canAddMembers = false,
   });
@@ -55,6 +57,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   bool isGroupCreator = false;
   bool isLeavingGroup = false;
 
+  Map<String, dynamic>? latestSideQuest;
+  bool isLoadingSideQuest = true;
+
   bool isLoadingHistory = true;
   bool isConnecting = true;
   bool isConnected = false;
@@ -74,7 +79,26 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     await loadGroupDetails();
     await loadGroupMembers();
     await loadMessages();
+    await loadLatestSideQuest();
     await connectWebSocket();
+    // Refresh once more after subscribing so a creation event between the
+    // initial request and WebSocket connection cannot be missed.
+    await loadLatestSideQuest();
+  }
+
+  Future<void> loadLatestSideQuest() async {
+    try {
+      final result = await ApiService.getLatestSideQuest(widget.groupId);
+      if (!mounted) return;
+      setState(() {
+        latestSideQuest = result;
+        isLoadingSideQuest = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoadingSideQuest = false);
+      debugPrint('Could not load group SideQuest: $e');
+    }
   }
 
   //this method retrieves group info from the backend and loads permisiions
@@ -115,7 +139,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // Retrieve previous messages from PostgreSQL.
   Future<void> loadMessages() async {
     try {
-      final result = await ApiService.getGroupMessages(     by calling the backend API
+      final result = await ApiService.getGroupMessages(     //by calling the backend API
         widget.groupId,
       );
 
@@ -225,6 +249,44 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
 
       final eventType = incomingMessage['type']?.toString();
+
+      if (eventType != null && eventType.startsWith('sidequest_')) {
+        unawaited(loadLatestSideQuest());
+        SideQuestEvents.notify();
+
+        if (eventType == 'sidequest_created') {
+          final creatorId = incomingMessage['created_by'];
+          if (creatorId is num && creatorId.toInt() != widget.currentUserId) {
+            final creatorName =
+                incomingMessage['created_by_username']?.toString() ??
+                    'A group member';
+            final title =
+                incomingMessage['title']?.toString() ?? 'a SideQuest';
+            showError('$creatorName created "$title" for this group.');
+          }
+        } else if (eventType == 'sidequest_option_added') {
+          final creatorId = incomingMessage['created_by'];
+          if (creatorId is num && creatorId.toInt() != widget.currentUserId) {
+            final creatorName =
+                incomingMessage['created_by_username']?.toString() ??
+                    'A group member';
+            final optionName =
+                incomingMessage['option_name']?.toString() ?? 'an option';
+            showError('$creatorName added "$optionName" to group voting.');
+          }
+        } else if (eventType == 'sidequest_activity_added') {
+          final creatorId = incomingMessage['created_by'];
+          if (creatorId is num && creatorId.toInt() != widget.currentUserId) {
+            final creatorName =
+                incomingMessage['created_by_username']?.toString() ??
+                    'A group member';
+            final activity =
+                incomingMessage['activity']?.toString() ?? 'an activity';
+            showError('$creatorName added $activity to the SideQuest.');
+          }
+        }
+        return;
+      }
 
       if (eventType == 'group_deleted') {
         final messenger = ScaffoldMessenger.of(context);
@@ -426,39 +488,73 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget buildSideQuestBanner() {
-    return ValueListenableBuilder<int>(
-      valueListenable: QuestDemoStore.changes,
-      builder: (context, _, __) {
-        final plan = QuestDemoStore.get(widget.groupName);
-        return Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: chatDarkCard,
-            borderRadius: BorderRadius.circular(20)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
+    final plan = latestSideQuest;
+    final hasPlan = plan != null;
+
+    final activities = hasPlan && plan['activities'] is List
+        ? (plan['activities'] as List).map((item) => item.toString()).join(' • ')
+        : '';
+
+    final options = hasPlan && plan['options'] is List
+        ? (plan['options'] as List).length
+        : 0;
+    final statusLabel = hasPlan && plan['status'] == 'finalized'
+        ? 'Finalized'
+        : 'Planning';
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: chatDarkCard,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
               const Icon(Icons.rocket_launch, color: chatPurple),
               const SizedBox(width: 10),
-              Expanded(child: Text(plan == null ? 'Plan something together?'
-                  : plan.title, style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.bold))),
-            ]),
-            const SizedBox(height: 10),
-            Text(plan == null ? 'Stop debating and start planning your next adventure!'
-                : '${plan.finalized ? 'Confirmed' : 'Planning'} • '
-                  '${questDateLabel(plan.proposedDateTime)} • '
-                  '${plan.nominations.length} nominated',
-                style: const TextStyle(color: Colors.white70)),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: chatPurple),
-              icon: Icon(plan == null ? Icons.rocket_launch : Icons.open_in_new),
-              label: Text(plan == null ? 'Start a SideQuest' : 'Open SideQuest'),
-              onPressed: widget.onStartSideQuest,
+              Expanded(
+                child: Text(
+                  isLoadingSideQuest
+                      ? 'Loading SideQuest...'
+                      : hasPlan
+                          ? plan['title']?.toString() ?? 'Group SideQuest'
+                          : 'Plan something together?',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isLoadingSideQuest
+                ? 'Checking the shared group plan.'
+                : hasPlan
+                    ? '$statusLabel • $activities • $options option(s)'
+                    : 'Create a shared plan that every group member can open, update and vote on.', 
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: chatPurple),
+            icon: Icon(
+              hasPlan ? Icons.open_in_new : Icons.rocket_launch,
             ),
-          ]),
-        );
-      },
+            label: Text(
+              hasPlan ? 'Open SideQuest' : 'Start a SideQuest',
+            ),
+            onPressed: isLoadingSideQuest
+                ? null
+                : widget.onStartSideQuest,
+          ),
+        ],
+      ),
     );
   }
 

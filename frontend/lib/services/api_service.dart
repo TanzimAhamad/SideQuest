@@ -559,4 +559,191 @@ static Future<Map<String, dynamic>> createGroup({
     );
   }
 
+
+
+  static Map<String, String> _sideQuestHeaders(String token) => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+  static String _sideQuestError(http.Response response, String fallback) {
+    final data = _decodeBody(response);
+    return data['detail']?.toString() ?? '$fallback (${response.statusCode})';
+  }
+
+  static Future<Map<String, dynamic>?> getLatestSideQuest(
+    int groupId,
+  ) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/groups/$groupId/sidequests/latest'),
+      headers: _sideQuestHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      if (decoded == null) return null;
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+      throw Exception('Unexpected SideQuest response.');
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not load SideQuest'));
+  }
+
+  static Future<Map<String, dynamic>> createSideQuest({
+    required int groupId,
+    required String title,
+    required List<String> activities,
+  }) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/groups/$groupId/sidequests'),
+      headers: _sideQuestHeaders(token),
+      body: jsonEncode({
+        'title': title,
+        'activities': activities,
+      }),
+    );
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return Map<String, dynamic>.from(decoded as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not create SideQuest'));
+  }
+
+  static Future<Map<String, dynamic>> getSideQuest(int sideQuestId) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/sidequests/$sideQuestId'),
+      headers: _sideQuestHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not refresh SideQuest'));
+  }
+
+  static Future<Map<String, dynamic>> addSideQuestActivity({
+    required int sideQuestId,
+    required String activity,
+  }) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/sidequests/$sideQuestId/activities'),
+      headers: _sideQuestHeaders(token),
+      body: jsonEncode({'activity': activity}),
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not add activity'));
+  }
+
+  static Future<Map<String, dynamic>> addSideQuestOption({
+    required int sideQuestId,
+    required String activity,
+    required String name,
+    required String area,
+    required int estimatedCost,
+    required String description,
+    String? sourceUrl,
+    String? sourceName,
+    String? sourceId,
+    DateTime? scheduledAt,
+  }) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/sidequests/$sideQuestId/options'),
+      headers: _sideQuestHeaders(token),
+      body: jsonEncode({
+        'activity': activity,
+        'name': name,
+        'area': area,
+        'estimated_cost': estimatedCost,
+        'description': description,
+        'source_url': sourceUrl,
+        'source_name': sourceName,
+        'source_id': sourceId,
+        'scheduled_at': scheduledAt?.toIso8601String(),
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not add group option'));
+  }
+
+  static Future<Map<String, dynamic>> voteForSideQuestOption({
+    required int sideQuestId,
+    required int optionId,
+  }) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/sidequests/$sideQuestId/votes'),
+      headers: _sideQuestHeaders(token),
+      body: jsonEncode({'option_id': optionId}),
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not record your vote'));
+  }
+
+  static Future<Map<String, dynamic>> finalizeSideQuest(
+    int sideQuestId,
+  ) async {
+    final token = accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('You are not logged in.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/sidequests/$sideQuestId/finalize'),
+      headers: _sideQuestHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+    }
+
+    throw Exception(_sideQuestError(response, 'Could not finalize SideQuest'));
+  }
+
 }

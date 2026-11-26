@@ -1,22 +1,27 @@
 from contextlib import asynccontextmanager
 
-from app.routers.private_chat import router as private_chat_router
-from app.routers.movies import router as movies_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import Base, engine
 from app.models import User
+from app.models.chat_message import ChatMessage
 from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
-from app.models.chat_message import ChatMessage
-from app.routers.message import router as messages_router
+from app.routers.foodpanda import router as foodpanda_router
+from app.routers.games import router as games_router
 from app.routers.groups import router as groups_router
+from app.routers.message import router as messages_router
+from app.routers.movies import router as movies_router
+from app.routers.private_chat import router as private_chat_router
+from app.routers.toggi import router as toggi_router
+from app.routers.sidequests import router as sidequests_router
+from app.routers.vote import router as vote_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Safely initialize tables on startup without crashing if DB is offline
     try:
         Base.metadata.create_all(bind=engine)
         print("Database tables initialized successfully.")
@@ -26,14 +31,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
-    title="SideQuest API",
-    lifespan=lifespan,
-)
+app = FastAPI(title="SideQuest API", lifespan=lifespan)
 
-
-# CORS middleware for frontend communication
-app.include_router(movies_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,7 +46,12 @@ app.include_router(messages_router)
 app.include_router(groups_router)
 app.include_router(chat_router)
 app.include_router(private_chat_router)
+app.include_router(games_router)
 app.include_router(movies_router)
+app.include_router(foodpanda_router)
+app.include_router(toggi_router)
+app.include_router(sidequests_router)
+app.include_router(vote_router)
 
 
 @app.get("/")
@@ -62,7 +66,4 @@ def check_database():
             connection.execute(text("SELECT 1"))
         return {"database_connected": True}
     except Exception as exc:
-        return {
-            "database_connected": False,
-            "error": str(exc),
-        }
+        return {"database_connected": False, "error": str(exc)}

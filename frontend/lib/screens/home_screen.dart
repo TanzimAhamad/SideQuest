@@ -1,10 +1,11 @@
-import '../sidequest/sidequest_flow.dart';
+import '../sidequest/sidequest_flow.dart' as sidequest;
 
 import 'package:flutter/material.dart';
 import 'auth_screen.dart';
 import '../services/api_service.dart';
 import 'group_chat_screen.dart';
 import 'private_chat_screen.dart';
+import 'games_screen.dart';
 
 const purple = Color(0xFF8B5CF6);
 const darkCard = Color(0xFF1D1E35);
@@ -136,11 +137,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      body: selectedTab == 2
+      body: selectedTab == 3
           ? buildProfile()
-          : selectedTab == 0
-              ? PrivateChatsTab(currentUserId: widget.currentUserId)
-              : buildGroupList(true),
+          : selectedTab == 2
+              ? GamesScreen(currentUserId: widget.currentUserId)
+              : selectedTab == 0
+                  ? PrivateChatsTab(currentUserId: widget.currentUserId)
+                  : buildGroupList(true),
 
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedTab,
@@ -157,6 +160,10 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.groups_outlined),
             label: 'Groups',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sports_esports_outlined),
+            label: 'Games',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
@@ -246,13 +253,17 @@ class _HomeScreenState extends State<HomeScreen> {
             groupId: newGroupId,
             groupName: newGroupName,
             currentUserId: widget.currentUserId,
+            currentUsername: widget.displayName,
             canAddMembers: true,
             onStartSideQuest: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => SideQuestScreen(
+                    groupId: newGroupId,
                     groupName: newGroupName,
+                    currentUserId: widget.currentUserId,
+                    currentUsername: widget.displayName,
                   ),
                 ),
               );
@@ -383,16 +394,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                             GroupChatScreen(
                                           groupId: groupId,
                                           groupName: groupName,
-                                          currentUserId:
-                                              widget.currentUserId,
+                                          currentUserId: widget.currentUserId,
+                                          currentUsername: widget.displayName,
                                           canAddMembers: (group['created_by'] as num).toInt() == widget.currentUserId,
-                                           onStartSideQuest: () {
+                                          onStartSideQuest: () {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (_) =>
-                                                    SideQuestScreen(
+                                                builder: (_) => SideQuestScreen(
+                                                  groupId: groupId,
                                                   groupName: groupName,
+                                                  currentUserId: widget.currentUserId,
+                                                  currentUsername: widget.displayName,
                                                 ),
                                               ),
                                             );
@@ -625,16 +638,78 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// SideQuest entry point, kept under the original name so existing group-chat
-// navigation continues to work without changing the rest of the app.
-class SideQuestScreen extends StatelessWidget {
+/// SideQuest entry point for a real database-backed group.
+class SideQuestScreen extends StatefulWidget {
+  final int? groupId;
   final String groupName;
-  const SideQuestScreen({super.key, required this.groupName});
+  final int currentUserId;
+  final String currentUsername;
+
+  const SideQuestScreen({
+    super.key,
+    this.groupId,
+    required this.groupName,
+    this.currentUserId = 0,
+    this.currentUsername = 'User',
+  });
+
+  @override
+  State<SideQuestScreen> createState() => _SideQuestScreenState();
+}
+
+class _SideQuestScreenState extends State<SideQuestScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final groupId = widget.groupId;
+
+    if (groupId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('SideQuest')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'SideQuest is available from a real group conversation. '
+              'Open a group chat and start SideQuest there.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SideQuestScreenContent(
+      groupId: groupId,
+      groupName: widget.groupName,
+      currentUserId: widget.currentUserId,
+      currentUsername: widget.currentUsername,
+    );
+  }
+}
+
+/// Separate wrapper avoids a name collision with this navigation entry point.
+class SideQuestScreenContent extends StatelessWidget {
+  final int groupId;
+  final String groupName;
+  final int currentUserId;
+  final String currentUsername;
+
+  const SideQuestScreenContent({
+    super.key,
+    required this.groupId,
+    required this.groupName,
+    required this.currentUserId,
+    required this.currentUsername,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final existing = QuestDemoStore.get(groupName);
-    if (existing != null) return QuestHubScreen(plan: existing);
-    return CreateSideQuestScreen(groupName: groupName);
+    return sidequest.SideQuestScreen(
+      groupId: groupId,
+      groupName: groupName,
+      currentUserId: currentUserId,
+      currentUsername: currentUsername,
+    );
   }
 }
+
