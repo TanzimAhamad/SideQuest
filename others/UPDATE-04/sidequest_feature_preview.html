@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SideQuest – Interactive Five-Screen Preview</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#090a17;color:#f5f3ff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:26px 14px 40px;gap:12px}
+    h1{font-size:23px;margin:0;color:#f5efff}
+    .sub{color:#aaa8c4;font-size:12px;text-align:center;margin:0 0 4px}
+    #sq-tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%;max-width:660px}
+    button{font:inherit}
+    .sq-tab{background:#25263d;color:#d6d2e9;border:1px solid #454660;border-radius:11px;padding:10px 13px;font-size:12px;cursor:pointer}
+    .sq-tab.on{background:#8B5CF6;color:#fff;border-color:#8B5CF6;font-weight:700}
+    .sq-device{width:100%;max-width:365px;background:#111226;border:5px solid #303047;border-radius:32px;overflow:hidden;box-shadow:0 18px 50px #0008}
+    .sq-status{height:30px;display:flex;justify-content:space-between;align-items:center;padding:0 23px;font-size:11px;font-weight:700;background:#111226}
+    .sq-bar{height:52px;background:#191a30;display:flex;align-items:center;gap:15px;padding:0 16px;font-size:17px;font-weight:600}
+    .sq-back{font-size:23px;color:#f4f0ff;cursor:pointer;background:none;border:0;padding:0 4px}
+    .sq-content{height:565px;overflow-y:auto;padding:18px 16px 24px;scrollbar-width:thin;scrollbar-color:#353551 transparent}
+    .sq-panel{background:#1D1E35;border-radius:18px;padding:17px;margin-bottom:13px}
+    .sq-muted{color:#acaac4;font-size:12px;line-height:1.55}
+    .sq-head{font-size:19px;font-weight:700;line-height:1.3}
+    .sq-smallhead{font-size:16px;font-weight:700}
+    .sq-purple{color:#a78bfa}
+    .sq-input{width:100%;background:#15162b;border:1px solid #5b5970;border-radius:6px;color:#fff;font-size:14px;padding:12px;margin-top:5px;min-width:0}
+    input[type=date],input[type=time]{color-scheme:dark}
+    .sq-field{display:block;font-size:12px;color:#bab8cc;margin-bottom:6px}
+    .sq-chips{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 20px}
+    .sq-chip{border:1px solid #636179;background:#292940;color:#eee9ff;border-radius:18px;padding:8px 11px;font-size:12px;cursor:pointer}
+    .sq-chip.chosen{background:#453178;border-color:#a78bfa;color:#fff}
+    .sq-button{width:100%;border:0;border-radius:8px;background:#8B5CF6;color:white;cursor:pointer;padding:13px 10px;font-size:14px;font-weight:700;margin-top:8px}
+    .sq-button:disabled{background:#45445a;color:#aaa8bd;cursor:default}
+    .sq-outline{border:1px solid #716d88;border-radius:7px;background:transparent;color:#f0ebff;padding:10px 12px;cursor:pointer;font-size:13px}
+    .sq-outline:disabled{opacity:.45;cursor:default}
+    .sq-row{display:flex;align-items:center;gap:11px}
+    .sq-step{width:100%;background:#1D1E35;border:0;border-radius:18px;color:#eeeaff;text-align:left;display:flex;gap:13px;align-items:center;padding:17px 14px;margin-bottom:11px;cursor:pointer}
+    .sq-stepicon{color:#a78bfa;font-size:24px;width:27px;text-align:center;flex-shrink:0}
+    .sq-place-icon{width:43px;height:43px;border-radius:50%;background:#372950;color:#b797ff;display:grid;place-items:center;font-size:21px;flex-shrink:0}
+    .sq-vote{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #35354b;padding:11px 0;cursor:pointer;font-size:13px}
+    .sq-vote input{accent-color:#8B5CF6;margin-top:3px}
+    .sq-note{font-size:11px;color:#9896af;text-align:center;line-height:1.6;margin-top:14px}
+    .sq-scrollchips{display:flex;overflow-x:auto;gap:8px;scrollbar-width:none;margin-bottom:12px}
+    .sq-scrollchips button{white-space:nowrap}
+    .sq-toast{padding:10px;margin-bottom:10px;border-radius:8px;background:#4c3553;color:#ffe9fc;font-size:12px}
+    .sq-home{width:108px;height:4px;background:#eeeeff;border-radius:8px;margin:10px auto}
+    .sq-select{background:#191a32;color:#fff;width:100%;padding:13px;border:1px solid #67647f;border-radius:7px}
+    .sq-switch{appearance:none;width:37px;height:22px;border-radius:15px;background:#55536d;position:relative;cursor:pointer;flex-shrink:0}
+    .sq-switch:checked{background:#8B5CF6}
+    .sq-switch:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;left:3px;top:3px;background:#fff;transition:transform .15s}
+    .sq-switch:checked:after{transform:translateX(15px)}
+    .sq-guide{font-size:12px;color:#aaa8c4;text-align:center;max-width:365px;line-height:1.5}
+    .foot{font-size:11px;color:#8785a6;text-align:center;max-width:500px;line-height:1.5}
+    @media (max-width:400px){.page{padding:14px 8px 24px}.sq-tab{padding:9px 8px;font-size:11px}.sq-content{height:calc(100dvh - 245px);min-height:360px}.sq-device{border-radius:25px}}
+  </style>
+</head>
+<body>
+<main class="page" id="sidequest-demo">
+<h1>✦ SideQuest</h1>
+<p class="sub">Five-screen interactive frontend preview</p>
+<div id="sq-tabs" role="navigation" aria-label="Preview screens"></div>
+<div class="sq-device">
+  <div class="sq-status"><span>9:41</span><span>●●● ▰</span></div>
+  <div class="sq-bar"><button class="sq-back" id="sq-back" aria-label="Previous screen">‹</button><span id="sq-bar-title"></span></div>
+  <div class="sq-content" id="sq-screen"></div>
+  <div class="sq-home"></div>
+</div>
+<div class="sq-guide" id="sq-guide"></div>
+<div class="foot">Standalone HTML simulation based on the provided Flutter code. Data stays in memory and resets when the page reloads; it does not connect to the SideQuest backend.</div>
+</main>
+<script>
+(()=>{
+const root=document.getElementById('sidequest-demo');
+const names=['Create','Quest Hub','Explore','Voting','Final Plan'];
+const titles=['Create SideQuest','SideQuest HQ','Explore destinations','Group voting','Final hangout plan'];
+const activities=['Eating Out','Movies','Shopping','Bowling & Games','Outdoor Activities'];
+const places=[
+{id:1,name:'The Garden Bistro',activity:'Eating Out',area:'Dhanmondi',cost:650,description:'Relaxed dining with plenty of seating.',icon:'🍽️'},
+{id:2,name:'Rooftop Bites',activity:'Eating Out',area:'Banani',cost:850,description:'Casual food and a rooftop atmosphere.',icon:'🍜'},
+{id:3,name:'Movie House',activity:'Movies',area:'Bashundhara',cost:550,description:'Catch a movie together on the big screen.',icon:'🎬'},
+{id:4,name:'Cinema Plaza',activity:'Movies',area:'Dhanmondi',cost:450,description:'A relaxed cinema outing.',icon:'🎞️'},
+{id:5,name:'City Shopping Mall',activity:'Shopping',area:'Jamuna',cost:300,description:'Browse stores and take a break together.',icon:'🛍️'},
+{id:6,name:'Lifestyle Market',activity:'Shopping',area:'Gulshan',cost:400,description:'An afternoon of browsing and shopping.',icon:'🏬'},
+{id:7,name:'Strike & Play',activity:'Bowling & Games',area:'Bashundhara',cost:700,description:'Bowling lanes and arcade games.',icon:'🎮'},
+{id:8,name:'Arcade Arena',activity:'Bowling & Games',area:'Uttara',cost:500,description:'Friendly arcade competitions.',icon:'🕹️'},
+{id:9,name:'Lakeside Walk',activity:'Outdoor Activities',area:'Hatirjheel',cost:100,description:'A scenic walk and hangout.',icon:'🌳'},
+{id:10,name:'Green Escape',activity:'Outdoor Activities',area:'Ramna',cost:150,description:'A laid-back afternoon in the park.',icon:'🌿'}
+];
+let page=0;
+let create={title:'Our next hangout',selected:[],date:'',time:'',budget:''};
+let plan={group:'Weekend Crew',title:'Our next hangout',date:'2026-11-21',time:'16:00',budget:1500,activities:['Eating Out','Movies'],nominations:[1,2,3,4],votes:{'Eating Out':{'You':1,'Friend 1':2,'Friend 2':1},'Movies':{'You':3,'Friend 1':3}},finalized:false};
+let activity='Eating Out',budgetOnly=true,participant='You',error='';
+const h=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shortDate=d=>{if(!d)return '';const a=d.split('-');return Number(a[2])+'/'+Number(a[1])+'/'+a[0]};
+const dateLabel=()=>{let [hr,m]=plan.time.split(':').map(Number);return shortDate(plan.date)+' • '+(hr%12||12)+':'+String(m).padStart(2,'0')+' '+(hr>=12?'PM':'AM')};
+const nominees=a=>places.filter(p=>p.activity===a&&plan.nominations.includes(p.id));
+const votesFor=(a,id)=>Object.values(plan.votes[a]||{}).filter(v=>v===id).length;
+const winner=a=>nominees(a).sort((x,y)=>votesFor(a,y.id)-votesFor(a,x.id)||x.id-y.id)[0];
+const totalVotes=()=>Object.values(plan.votes).reduce((t,v)=>t+Object.keys(v).length,0);
+const complete=()=>plan.activities.every(a=>nominees(a).length&&Object.keys(plan.votes[a]||{}).length);
+const go=p=>{page=p;error='';render();};
+function createScreen(){
+return `<div style="text-align:center;margin:7px 0 22px">
+<div style="font-size:43px;color:#8B5CF6">🚀</div>
+<div class="sq-head" style="margin-top:12px">Plan with Weekend Crew</div></div>
+<label class="sq-field">SideQuest title<input id="sq-title" class="sq-input" value="${h(create.title)}" placeholder="SideQuest title"></label>
+<div style="height:13px"></div><div class="sq-smallhead">Choose activities</div>
+<div class="sq-chips">${activities.map(a=>`<button class="sq-chip ${create.selected.includes(a)?'chosen':''}" data-activity="${h(a)}">${h(a)}</button>`).join('')}</div>
+<label class="sq-field">📅 Select proposed date<input id="sq-date" class="sq-input" type="date" value="${create.date}"></label>
+<div style="height:9px"></div>
+<label class="sq-field">◷ Select proposed time<input id="sq-time" class="sq-input" type="time" value="${create.time}"></label>
+<div style="height:13px"></div>
+<label class="sq-field">Budget per person (৳)<input id="sq-budget" class="sq-input" type="number" min="1" value="${h(create.budget)}" placeholder="e.g. 1500"></label>
+<div style="height:12px"></div>
+${error?`<div class="sq-toast">${h(error)}</div>`:''}
+<button class="sq-button" data-action="create">🚀 &nbsp; Create and explore</button>
+<div class="sq-note">Demo mode: plans are stored in memory, not sent to the server.</div>`;
+}
+function hubScreen(){
+return `<div class="sq-panel">
+<div style="color:#a78bfa;font-size:12px;font-weight:800;letter-spacing:.4px">YOUR GROUP PLAN</div>
+<div class="sq-head" style="margin:10px 0">${h(plan.title)}</div>
+<div style="font-size:13px;line-height:1.8">${h(plan.group)} • ${h(dateLabel())}<div>Budget: ৳${plan.budget} / person</div><div style="margin-top:5px">${plan.activities.map(h).join(' • ')}</div></div></div>
+<div style="height:5px"></div>
+${[['🌐','1. Explore and nominate','Browse sample destinations for each activity.',2],['🗳️','2. Group voting','Each participant can choose one place per activity.',3],['📅','3. Final hangout plan','Review winners and confirm your itinerary.',4]].map(x=>`<button class="sq-step" data-go="${x[3]}"><span class="sq-stepicon">${x[0]}</span><span style="flex:1"><span style="font-weight:700;font-size:14px">${x[1]}</span><span class="sq-muted" style="display:block;margin-top:6px">${x[2]}</span></span><span style="font-size:23px;color:#a29fb8">›</span></button>`).join('')}
+<div style="height:5px"></div>
+<div class="sq-panel"><div style="font-size:14px;font-weight:700">Status: ${plan.finalized?'Confirmed':'Planning'}</div>
+<div style="font-size:13px;margin-top:8px">${plan.nominations.length} destinations nominated</div><div style="font-size:13px;margin-top:3px">${totalVotes()} votes cast across activities</div>
+<div class="sq-muted" style="margin-top:10px">Votes are demo-local; use the participant selector to simulate friends.</div></div>`;
+}
+function exploreScreen(){
+let matches=places.filter(p=>p.activity===activity&&(!budgetOnly||p.cost<=plan.budget));
+return `<div class="sq-scrollchips">${plan.activities.map(a=>`<button data-filter-activity="${h(a)}" class="sq-chip ${activity===a?'chosen':''}">${h(a)}</button>`).join('')}</div>
+<label class="sq-row" style="justify-content:space-between;font-size:13px;margin-bottom:15px"><span>Within ৳${plan.budget} per person</span><input id="sq-budget-filter" type="checkbox" class="sq-switch" ${budgetOnly?'checked':''}></label>
+${matches.length?matches.map(p=>{
+let nominated=plan.nominations.includes(p.id);
+return `<div class="sq-panel"><div class="sq-row"><span class="sq-place-icon">${p.icon}</span>
+<div style="flex:1;min-width:0"><div class="sq-smallhead">${h(p.name)}</div><div class="sq-muted">${h(p.area)}</div></div>
+<div class="sq-purple" style="font-size:13px;font-weight:800">৳${p.cost}</div></div>
+<div style="font-size:13px;line-height:1.6;margin-top:13px">${h(p.description)}</div>
+<button class="sq-outline" style="width:100%;margin-top:15px;${nominated?'border-color:#a78bfa;color:#c4afff':''}" data-nominate="${p.id}" ${plan.finalized?'disabled':''}>${nominated?'✓ Nominated • remove':'⊕ Nominate for voting'}</button></div>`;
+}).join(''):'<div class="sq-muted" style="text-align:center;padding:35px 10px">No sample destinations match this budget. Turn off the budget filter.</div>'}
+<button class="sq-button" data-go="3">Continue to voting</button>`;
+}
+function voteScreen(){
+return `<div class="sq-muted" style="font-size:13px;margin-bottom:15px">Demo: switch participant to simulate multiple group members.</div>
+<label class="sq-field">Voting as<select class="sq-select" id="sq-participant">${['You','Friend 1','Friend 2','Friend 3'].map(p=>`<option ${participant===p?'selected':''}>${h(p)}</option>`).join('')}</select></label>
+<div style="height:18px"></div>
+${plan.activities.map(a=>`<div class="sq-panel"><div class="sq-smallhead" style="margin-bottom:10px">${h(a)}</div>${!nominees(a).length?'<div class="sq-muted">No destinations nominated yet. Go back to Explore.</div>':nominees(a).map(p=>`<label class="sq-vote"><input type="radio" name="sq-vote-${activities.indexOf(a)}" data-vote-activity="${h(a)}" value="${p.id}" ${(plan.votes[a]||{})[participant]===p.id?'checked':''} ${plan.finalized?'disabled':''}><span style="flex:1"><span style="display:block">${h(p.name)}</span><span class="sq-muted">${h(p.area)} • ৳${p.cost} • ${votesFor(a,p.id)} votes</span></span></label>`).join('')}</div>`).join('')}
+<button class="sq-button" data-go="4">◉ &nbsp; View results / final plan</button>`;
+}
+function finalScreen(){
+return `<div style="text-align:center;padding:8px 0 22px">
+<div style="font-size:45px;color:#8B5CF6">${plan.finalized?'✅':'🗓️'}</div>
+<div class="sq-head" style="margin-top:12px">${h(plan.title)}</div>
+<div style="font-size:13px;margin-top:9px">${h(dateLabel())}</div>
+<div style="font-size:13px;margin-top:6px">Budget: ৳${plan.budget} per person</div></div>
+${plan.activities.map(a=>{const w=winner(a);return `<div class="sq-panel"><div class="sq-purple" style="font-size:12px;font-weight:800;margin-bottom:9px">${h(a.toUpperCase())}</div>
+<div class="sq-smallhead">${w?h(w.name):'No destination nominated'}</div>
+${w?`<div style="font-size:13px;margin-top:8px">${h(w.area)} • estimated ৳${w.cost} per person</div>`:''}
+<div class="sq-muted" style="margin-top:7px">${Object.keys(plan.votes[a]||{}).length} votes submitted</div></div>`}).join('')}
+${!plan.finalized?`<div class="sq-muted">Results use most votes per category. Ties use destination ID order.</div>
+<button class="sq-button" data-action="confirm" ${complete()?'':'disabled'}>✓ &nbsp; Confirm final hangout plan</button>${!complete()?'<div style="color:#f8c26e;font-size:12px;text-align:center;margin-top:12px">Nominate and vote on at least one destination in every activity to confirm.</div>':''}`:'<div style="text-align:center"><span class="sq-chip chosen" style="display:inline-block">✓ Confirmed</span></div>'}
+<div class="sq-note">Note: This is an in-memory frontend demo, not a synced group itinerary.</div>`;
+}
+function render(){
+document.getElementById('sq-tabs').innerHTML=names.map((n,i)=>`<button class="sq-tab ${page===i?'on':''}" data-go="${i}">${i+1}. ${n}</button>`).join('');
+document.getElementById('sq-bar-title').textContent=titles[page];
+document.getElementById('sq-back').style.visibility=page?'visible':'hidden';
+document.getElementById('sq-screen').innerHTML=[createScreen,hubScreen,exploreScreen,voteScreen,finalScreen][page]();
+document.getElementById('sq-guide').textContent=[
+'Select activities, date, time, and budget, then create a SideQuest.',
+'View the plan overview and move to the three planning stages.',
+'Nominate or remove sample destinations for each selected activity.',
+'Switch between participants to simulate group votes.',
+'Check the winning destinations and confirm your final plan.'
+][page];
+}
+root.addEventListener('click',e=>{
+const b=e.target.closest('button');if(!b)return;
+if(b.id==='sq-back'){go(Math.max(0,page-1));return}
+if(b.dataset.go!==undefined){go(Number(b.dataset.go));return}
+if(b.dataset.activity!==undefined){let a=b.dataset.activity;create.selected=create.selected.includes(a)?create.selected.filter(x=>x!==a):[...create.selected,a];render();return}
+if(b.dataset.filterActivity!==undefined){activity=b.dataset.filterActivity;render();return}
+if(b.dataset.nominate!==undefined){
+const id=Number(b.dataset.nominate);if(plan.finalized)return;
+if(plan.nominations.includes(id)){
+plan.nominations=plan.nominations.filter(x=>x!==id);
+const a=places.find(x=>x.id===id)?.activity;
+for(const [person,v] of Object.entries(plan.votes[a]||{}))if(v===id)delete plan.votes[a][person];
+}else plan.nominations.push(id);
+render();return
+}
+if(b.dataset.action==='confirm'&&complete()&&!plan.finalized){plan.finalized=true;render();return}
+if(b.dataset.action==='create'){
+const amt=Number(create.budget);
+if(!create.title.trim()||!create.selected.length||!create.date||!create.time||!Number.isInteger(amt)||amt<=0){error='Enter a title, activities, date, time and valid budget.';render();return}
+if(new Date(create.date+'T'+create.time)<new Date()){error='Select a future date and time.';render();return}
+plan={group:'Weekend Crew',title:create.title.trim(),date:create.date,time:create.time,budget:amt,activities:activities.filter(x=>create.selected.includes(x)),nominations:[],votes:{},finalized:false};
+activity=plan.activities[0];budgetOnly=true;go(1);
+}
+});
+root.addEventListener('input',e=>{
+const id=e.target.id;
+if(id==='sq-title')create.title=e.target.value;
+if(id==='sq-date')create.date=e.target.value;
+if(id==='sq-time')create.time=e.target.value;
+if(id==='sq-budget')create.budget=e.target.value;
+});
+root.addEventListener('change',e=>{
+if(e.target.id==='sq-budget-filter'){budgetOnly=e.target.checked;render()}
+if(e.target.id==='sq-participant'){participant=e.target.value;render()}
+if(e.target.dataset.voteActivity!==undefined&&!plan.finalized){
+const a=e.target.dataset.voteActivity;
+if(!plan.votes[a])plan.votes[a]={};
+plan.votes[a][participant]=Number(e.target.value);render()
+}
+});
+render();
+})();
+</script>
+</body>
+</html>

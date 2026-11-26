@@ -1,3 +1,4 @@
+import '../sidequest/sidequest_flow.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -31,6 +32,8 @@ class GroupChatScreen extends StatefulWidget {
       _GroupChatScreenState();
 }
 
+
+//this class maintains the application's chat data, user information, group permissions, and WebSocket connection state.
 class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController messageController =
       TextEditingController();
@@ -39,7 +42,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       ScrollController();
 
   final WebSocketService webSocketService =
-      WebSocketService();
+      WebSocketService();                        //creates an instance to communicate with the backend
 
   StreamSubscription<dynamic>? messageSubscription;
 
@@ -66,7 +69,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     initializeChat();
   }
 
-  // Load group permissions, members, old messages, then connect WebSocket.
+  //this method coordinates the chat initialization process. It loads the required group data and message history before establishing the WebSocket connection.
   Future<void> initializeChat() async {
     await loadGroupDetails();
     await loadGroupMembers();
@@ -74,6 +77,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     await connectWebSocket();
   }
 
+  //this method retrieves group info from the backend and loads permisiions
   Future<void> loadGroupDetails() async {
     try {
       final details = await ApiService.getGroupDetails(widget.groupId);
@@ -111,7 +115,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // Retrieve previous messages from PostgreSQL.
   Future<void> loadMessages() async {
     try {
-      final result = await ApiService.getGroupMessages(
+      final result = await ApiService.getGroupMessages(     by calling the backend API
         widget.groupId,
       );
 
@@ -138,7 +142,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  // Establish the authenticated WebSocket connection.
+  //thi methods help to establish the authenticated WebSocket connection.
   Future<void> connectWebSocket() async {
     if (mounted) {
       setState(() {
@@ -148,15 +152,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
 
     try {
-      final token = ApiService.accessToken;
+      final token = ApiService.accessToken;   //first we retrieve the jwt access token
 
       if (token == null || token.isEmpty) {
-        throw Exception('Authentication token not found.');
+        throw Exception('Authentication token not found.');    //checks if the token exists
       }
 
       await webSocketService.connect(
         groupId: widget.groupId,
-        token: token,
+        token: token,    
       );
 
       if (!mounted) {
@@ -170,7 +174,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         throw Exception('WebSocket stream unavailable.');
       }
 
-      messageSubscription = stream.listen(
+      messageSubscription = stream.listen(        //subscribes to the stream using listen() and passes tthe incoming data to handle incoming mes
         handleIncomingMessage,
         onError: (error) {
           if (!mounted) return;
@@ -204,17 +208,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  // Receive and decode messages broadcast by FastAPI.
+  //Receive and decode messages broadcast by FastAPI.
+  //
   void handleIncomingMessage(dynamic data) {
     try {
-      final decoded = jsonDecode(data.toString());
+      final decoded = jsonDecode(data.toString());    //converts the incoming json string to dart object to be accessed in the textfield of the UI
 
       if (decoded is! Map) return;
 
       final incomingMessage =
           Map<String, dynamic>.from(decoded);
 
-      if (incomingMessage['error'] != null) {
+      if (incomingMessage['error'] != null) {         
         showError(incomingMessage['error'].toString());
         return;
       }
@@ -288,7 +293,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   // Send a message through WebSocket.
   void sendMessage() {
-    final message = messageController.text.trim();
+    final message = messageController.text.trim(); // removes unnecessary white spaces
 
     if (message.isEmpty) return;
 
@@ -421,53 +426,39 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget buildSideQuestBanner() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: chatDarkCard,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.rocket_launch,
-                color: chatPurple,
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Plan something together?',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Stop debating and start planning '
-            'your next adventure!',
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: chatPurple,
-              ),
-              icon: const Icon(Icons.rocket_launch),
-              label: const Text('Start a SideQuest'),
+    return ValueListenableBuilder<int>(
+      valueListenable: QuestDemoStore.changes,
+      builder: (context, _, __) {
+        final plan = QuestDemoStore.get(widget.groupName);
+        return Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: chatDarkCard,
+            borderRadius: BorderRadius.circular(20)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              const Icon(Icons.rocket_launch, color: chatPurple),
+              const SizedBox(width: 10),
+              Expanded(child: Text(plan == null ? 'Plan something together?'
+                  : plan.title, style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.bold))),
+            ]),
+            const SizedBox(height: 10),
+            Text(plan == null ? 'Stop debating and start planning your next adventure!'
+                : '${plan.finalized ? 'Confirmed' : 'Planning'} • '
+                  '${questDateLabel(plan.proposedDateTime)} • '
+                  '${plan.nominations.length} nominated',
+                style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: chatPurple),
+              icon: Icon(plan == null ? Icons.rocket_launch : Icons.open_in_new),
+              label: Text(plan == null ? 'Start a SideQuest' : 'Open SideQuest'),
               onPressed: widget.onStartSideQuest,
             ),
-          ),
-        ],
-      ),
+          ]),
+        );
+      },
     );
   }
 
