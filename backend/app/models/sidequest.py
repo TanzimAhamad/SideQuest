@@ -1,4 +1,3 @@
-
 from datetime import date, datetime, time
 from decimal import Decimal
 
@@ -7,6 +6,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    JSON,
     Numeric,
     String,
     Text,
@@ -52,6 +52,11 @@ class SideQuest(Base):
         nullable=False,
     )
 
+    location: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
     proposed_date: Mapped[date] = mapped_column(
         Date,
         nullable=False,
@@ -70,6 +75,11 @@ class SideQuest(Base):
     budget_max: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
+    )
+
+    weather_forecast: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
     )
 
     created_by: Mapped[int] = mapped_column(

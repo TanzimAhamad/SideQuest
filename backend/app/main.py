@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 
 from app.database import Base, engine
 from app.models import User, ChatMessage
@@ -20,14 +21,31 @@ from app.routers.vote import router as votes_router
 
 # Activity routers
 from app.routers.movies import router as movies_router
-from app.routers.restaurant import router as restaurants_router
-from app.routers.bowling import router as bowling_router
+from app.routers.weather import router as weather_router
+# Uncomment once Tanim's branch (restaurant.py & bowling.py) is merged:
+# from app.routers.restaurant import router as restaurants_router
+# from app.routers.bowling import router as bowling_router
+
+
+def _ensure_sidequest_weather_columns() -> None:
+    """Safely add weather-related columns if the sidequests table already existed."""
+    inspector = inspect(engine)
+    if "sidequests" not in inspector.get_table_names():
+        return
+
+    existing_cols = {col["name"] for col in inspector.get_columns("sidequests")}
+    with engine.begin() as conn:
+        if "location" not in existing_cols:
+            conn.execute(text("ALTER TABLE sidequests ADD COLUMN location VARCHAR(150)"))
+        if "weather_forecast" not in existing_cols:
+            conn.execute(text("ALTER TABLE sidequests ADD COLUMN weather_forecast JSON"))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         Base.metadata.create_all(bind=engine)
+        _ensure_sidequest_weather_columns()
         print("Database tables initialized successfully.")
     except Exception as exc:
         print(f"Warning: Could not connect to database on startup: {exc}")
@@ -61,8 +79,9 @@ app.include_router(sidequest_options_router)
 app.include_router(votes_router)
 
 app.include_router(movies_router)
-app.include_router(restaurants_router)
-app.include_router(bowling_router)
+app.include_router(weather_router)
+# app.include_router(restaurants_router)
+# app.include_router(bowling_router)
 
 
 @app.get("/")

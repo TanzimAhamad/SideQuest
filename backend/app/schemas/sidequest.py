@@ -1,9 +1,10 @@
-
 from datetime import date, time, datetime
 from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
+
+from app.schemas.weather import WeatherForecast
 
 
 ActivityType = Literal[
@@ -21,6 +22,7 @@ class SideQuestCreate(BaseModel):
     description: str | None = None
 
     activity_type: ActivityType
+    location: str | None = Field(default=None, max_length=150)
 
     proposed_date: date
     proposed_time: time
@@ -50,10 +52,12 @@ class SideQuestResponse(BaseModel):
     title: str
     description: str | None
     activity_type: str
+    location: str | None = None
     proposed_date: date
     proposed_time: time
     budget_min: Decimal
     budget_max: Decimal
+    weather_forecast: WeatherForecast | None = None
     created_by: int
     group_id: int
     status: str
